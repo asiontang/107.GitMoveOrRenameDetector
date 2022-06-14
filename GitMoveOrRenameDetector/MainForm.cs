@@ -303,7 +303,7 @@ namespace GitMoveOrRenameDetector
 
             renameList.Add("把工作目录状态暂存起来(把工作目录弄干净,方便后续临时提交一个纯纯的重命名的版本");
             //file:///D:/Program%20Files/Git/mingw64/share/doc/git-doc/git-stash.html
-            renameList.AddRange(GetCmdResult(GitExeFilePath, $"stash --include-untracked"));//将未版本控制的也要暂存起来,防止后续干扰
+            renameList.AddRange(GetCmdResult(GitExeFilePath, $"stash --include-untracked")); //将未版本控制的也要暂存起来,防止后续干扰
             renameList.Add("");
 
             int i = 0;
@@ -318,14 +318,15 @@ namespace GitMoveOrRenameDetector
                 renameList.AddRange(GetCmdResult(GitExeFilePath, $"mv \"{oldFileStr}\" \"{newFileStr}\""));
                 renameList.Add("");
             }
+
             renameList.Add("提交一个纯纯的重命名的版本");
             renameList.AddRange(GetCmdResult(GitExeFilePath, $"commit -m \"+移动了:或重命名了 {i} 个文件\""));
             renameList.Add("");
-            
+
             renameList.Add("将暂存起来的状态还原到工作目录");
             renameList.AddRange(GetCmdResult(GitExeFilePath, $"stash pop"));
             renameList.Add("");
-            
+
             rtbRename.Lines = renameList.ToArray();
         }
 
@@ -333,6 +334,52 @@ namespace GitMoveOrRenameDetector
         {
             InitData();
             rtbRename.Clear();
+        }
+
+        private void StartExe(string fileName, string arguments)
+        {
+            try
+            {
+                Process.Start(fileName, arguments);
+            }
+            catch (Exception exception)
+            {
+                MessageBox.Show(exception.ToString());
+            }
+        }
+
+        private void btnOpenGitCmd_Click(object sender, EventArgs e)
+        {
+            StartExe(GitExeFilePath + @"\..\..\git-cmd.exe", null);
+        }
+
+        // REM 可用的后缀列表 :push :commit :reflog
+        // REM Appendix D. Automating TortoiseGit – TortoiseGit – Documentation – TortoiseGit – Windows Shell Interface to Git		
+        // REM https://tortoisegit.org/docs/tortoisegit/tgit-automation.html
+
+        private void btnOpenGitLog_Click(object sender, EventArgs e)
+        {
+            StartExe(GitExeFilePath + @"\..\..\..\TortoiseGit\bin\TortoiseGitProc.exe", "/command:log");
+        }
+
+        private void btnOpenGitReflog_Click(object sender, EventArgs e)
+        {
+            StartExe(GitExeFilePath + @"\..\..\..\TortoiseGit\bin\TortoiseGitProc.exe", "/command:reflog");
+        }
+
+        private void btnOpenCommit_Click(object sender, EventArgs e)
+        {
+            StartExe(GitExeFilePath + @"\..\..\..\TortoiseGit\bin\TortoiseGitProc.exe", "/command:commit");
+        }
+
+        private void btnOpenSync_Click(object sender, EventArgs e)
+        {
+            StartExe(GitExeFilePath + @"\..\..\..\TortoiseGit\bin\TortoiseGitProc.exe", "/command:sync");
+        }
+
+        private void btnOpenPush_Click(object sender, EventArgs e)
+        {
+            StartExe(GitExeFilePath + @"\..\..\..\TortoiseGit\bin\TortoiseGitProc.exe", "/command:push");
         }
     }
 }
