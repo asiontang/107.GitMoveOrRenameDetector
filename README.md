@@ -3,7 +3,7 @@
 #### 介绍
 检测Git项目里的被移动的或者重命名的文件目录,自动使用使用RENAME命令以便能不丢失版本历史追踪的功能
 
-![screenshot.png](screenshot.png.png)
+![screenshot.png](screenshot.png)
 
 #### 软件架构
 
