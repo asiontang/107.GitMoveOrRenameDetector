@@ -20,7 +20,8 @@ namespace GitMoveOrRenameDetector
         private void MainForm_Load(object sender, EventArgs e)
         {
             SetProjectDirAsCurrentDirectory();
-
+            Text = $"GitMoveOrRenameDetector (By:AsionTang) v220614.01.01.001 {Directory.GetCurrentDirectory()}";
+            
             //方案1:用户在提交页面手动复制要检测重命名的文件,然后从剪贴板直接读取即可.
             //操作步骤:用户在TortoiseGit提交页面选中OldFile和NewFile,然后Ctrl+C进行复制
 
