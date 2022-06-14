@@ -21,7 +21,7 @@ namespace GitMoveOrRenameDetector
         {
             SetProjectDirAsCurrentDirectory();
             Text = $"GitMoveOrRenameDetector (By:AsionTang) v220614.01.01.001 {Directory.GetCurrentDirectory()}";
-            
+
             //方案1:用户在提交页面手动复制要检测重命名的文件,然后从剪贴板直接读取即可.
             //操作步骤:用户在TortoiseGit提交页面选中OldFile和NewFile,然后Ctrl+C进行复制
 
@@ -65,9 +65,13 @@ namespace GitMoveOrRenameDetector
                 myProcess.StartInfo.StandardOutputEncoding = Encoding.UTF8;
                 myProcess.StartInfo.RedirectStandardOutput = true;
 
+                myProcess.StartInfo.StandardErrorEncoding = Encoding.UTF8;
+                myProcess.StartInfo.RedirectStandardError = true;
+
                 myProcess.Start();
 
                 result = myProcess.StandardOutput.ReadToEnd();
+                result += myProcess.StandardError.ReadToEnd();
 
                 myProcess.WaitForExit();
             }
@@ -156,10 +160,12 @@ namespace GitMoveOrRenameDetector
 
         #endregion
 
+        private readonly Dictionary<string, NewFileInfo> _DelAndNewDic = new Dictionary<string, NewFileInfo>();
+
         private void btnChcek_Click(object sender, EventArgs e)
         {
+            _DelAndNewDic.Clear();
             //遍历被删除的文件, 找到其最新的文件名
-            var delAndNewDic = new Dictionary<string, NewFileInfo>();
             foreach (var delFileStr in _DeletedFiles)
             {
                 var delFile = new FileInfo(delFileStr);
@@ -176,7 +182,7 @@ namespace GitMoveOrRenameDetector
                     //场景1: 同一个文件名,只是移动了到不同目录了.
                     if (newFile.Name == delFile.Name)
                     {
-                        delAndNewDic.Add(delFileStr, new NewFileInfo(newFileStr));
+                        _DelAndNewDic.Add(delFileStr, new NewFileInfo(newFileStr));
                         break; //文件名一样,优先级最高.直接覆盖并返回.
                     }
 
@@ -188,8 +194,8 @@ namespace GitMoveOrRenameDetector
                         if (theSamePrefixCount > 0)
                         {
                             NewFileInfo newFileInfo;
-                            if (!delAndNewDic.TryGetValue(delFileStr, out newFileInfo))
-                                delAndNewDic.Add(delFileStr, newFileInfo = new NewFileInfo());
+                            if (!_DelAndNewDic.TryGetValue(delFileStr, out newFileInfo))
+                                _DelAndNewDic.Add(delFileStr, newFileInfo = new NewFileInfo());
                             newFileInfo.AddWithTheSamePrefixCount(theSamePrefixCount, newFileStr);
                             //NO:不能结束循环,因为可能有比它更相似的前缀存在break;
                         }
@@ -200,7 +206,7 @@ namespace GitMoveOrRenameDetector
             //将检测到重命名文件显示到界面
             var renameList = new List<String>();
             int i = 0;
-            foreach (var kv in delAndNewDic)
+            foreach (var kv in _DelAndNewDic)
             {
                 renameList.Add(++i + "." + kv.Key);
                 renameList.Add("└→ " + kv.Value.getNewFileStr());
@@ -267,7 +273,66 @@ namespace GitMoveOrRenameDetector
 
         private void btnRename_Click(object sender, EventArgs e)
         {
-            throw new System.NotImplementedException();
+            //::先还原修改, 将已经移动后的文件, 移动回来, 否则后续git-mv会因为找不到源文件报错, 使用-f -i 也没有效果.
+            //::需要替换为 Windows 路径分隔符\
+            //move dir2\new.ext dir1\old.ext
+            //
+            //::再使用git的mv命令来移动, 以便保持变更记录
+            //git mv dir1/old.ext dir2/new.ext
+            //
+            //碰到的问题
+            //1. 参考 始终在独立提交中移动和重命名 Git 文件
+            //1. 原因就是实际操作过程中发现, 没法在一个提交里, 既操作了MV, 又修改了文件,类似HG一样
+            //1. 必须先将未经修改的源文件使用MV移动到新位置,
+            //1. 再修改该文件, 这样才不会出现问题.
+            //1. 否则会出现无法正常提交, 无法选中要提交的文件等等异常情况.
+
+            //麻烦的操作步骤
+            //>Git 部分提交
+            // git stash 将工作目录的修改,暂存起来,然后再执行以下新的git stash pop
+            //  stash（暫存） | 連猴子都能懂的Git入門指南 | 貝格樂（Backlog）
+            //1. 先备份新文件为MOVE  dir2\new.ext dir2\new.ext.bak
+            //1. 再还原老文件git checkout -- dir1\old.ext
+            //1. 将老文件使用GIT移动到新文件名git mv dir1/old.ext dir2/new.ext
+            //1. 将移动这一操作单独提交为一个版本git commit -m 'commit message'
+            //1. 将新文件备份还原MOVE  dir2\new.ext.bak dir2\new.ext
+            //1. 最后可以正常提交业务修改了.
+
+            //将检测到重命名文件显示到界面
+            var renameList = new List<String>();
+
+            renameList.Add("把工作目录状态暂存起来(把工作目录弄干净,方便后续临时提交一个纯纯的重命名的版本");
+            //file:///D:/Program%20Files/Git/mingw64/share/doc/git-doc/git-stash.html
+            renameList.AddRange(GetCmdResult(GitExeFilePath, $"stash --include-untracked"));//将未版本控制的也要暂存起来,防止后续干扰
+            renameList.Add("");
+
+            int i = 0;
+            foreach (var kv in _DelAndNewDic)
+            {
+                var oldFileStr = kv.Key;
+                var newFileStr = kv.Value.getNewFileStr();
+
+                renameList.Add(++i + "." + oldFileStr);
+                renameList.Add("└→ " + newFileStr);
+                renameList.Add("└→ 使用Git MV指令重命名为新文件");
+                renameList.AddRange(GetCmdResult(GitExeFilePath, $"mv \"{oldFileStr}\" \"{newFileStr}\""));
+                renameList.Add("");
+            }
+            renameList.Add("提交一个纯纯的重命名的版本");
+            renameList.AddRange(GetCmdResult(GitExeFilePath, $"commit -m \"+移动了:或重命名了 {i} 个文件\""));
+            renameList.Add("");
+            
+            renameList.Add("将暂存起来的状态还原到工作目录");
+            renameList.AddRange(GetCmdResult(GitExeFilePath, $"stash pop"));
+            renameList.Add("");
+            
+            rtbRename.Lines = renameList.ToArray();
+        }
+
+        private void btnRefresh_Click(object sender, EventArgs e)
+        {
+            InitData();
+            rtbRename.Clear();
         }
     }
 }

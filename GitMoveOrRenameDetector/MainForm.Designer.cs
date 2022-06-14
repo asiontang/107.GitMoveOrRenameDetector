@@ -35,6 +35,8 @@
             this.btnRename = new System.Windows.Forms.Button();
             this.rtbRename = new System.Windows.Forms.RichTextBox();
             this.btnCheck = new System.Windows.Forms.Button();
+            this.btnSwitchHg = new System.Windows.Forms.Button();
+            this.btnRefresh = new System.Windows.Forms.Button();
             label1 = new System.Windows.Forms.Label();
             label2 = new System.Windows.Forms.Label();
             this.SuspendLayout();
@@ -75,7 +77,7 @@
             // 
             // btnRename
             // 
-            this.btnRename.Location = new System.Drawing.Point(365, 61);
+            this.btnRename.Location = new System.Drawing.Point(365, 203);
             this.btnRename.Name = "btnRename";
             this.btnRename.Size = new System.Drawing.Size(85, 23);
             this.btnRename.TabIndex = 3;
@@ -98,7 +100,7 @@
             // 
             // btnCheck
             // 
-            this.btnCheck.Location = new System.Drawing.Point(365, 17);
+            this.btnCheck.Location = new System.Drawing.Point(365, 174);
             this.btnCheck.Name = "btnCheck";
             this.btnCheck.Size = new System.Drawing.Size(85, 23);
             this.btnCheck.TabIndex = 2;
@@ -107,12 +109,34 @@
             this.btnCheck.UseVisualStyleBackColor = true;
             this.btnCheck.Click += new System.EventHandler(this.btnChcek_Click);
             // 
+            // btnSwitchHg
+            // 
+            this.btnSwitchHg.Location = new System.Drawing.Point(365, 413);
+            this.btnSwitchHg.Name = "btnSwitchHg";
+            this.btnSwitchHg.Size = new System.Drawing.Size(85, 23);
+            this.btnSwitchHg.TabIndex = 6;
+            this.btnSwitchHg.Text = "切换为Hg模式";
+            this.btnSwitchHg.TextAlign = System.Drawing.ContentAlignment.MiddleLeft;
+            this.btnSwitchHg.UseVisualStyleBackColor = true;
+            // 
+            // btnRefresh
+            // 
+            this.btnRefresh.Location = new System.Drawing.Point(365, 16);
+            this.btnRefresh.Name = "btnRefresh";
+            this.btnRefresh.Size = new System.Drawing.Size(85, 23);
+            this.btnRefresh.TabIndex = 7;
+            this.btnRefresh.Text = "刷新";
+            this.btnRefresh.UseVisualStyleBackColor = true;
+            this.btnRefresh.Click += new System.EventHandler(this.btnRefresh_Click);
+            // 
             // MainForm
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 12F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
             this.BackColor = System.Drawing.SystemColors.Control;
             this.ClientSize = new System.Drawing.Size(820, 439);
+            this.Controls.Add(this.btnRefresh);
+            this.Controls.Add(this.btnSwitchHg);
             this.Controls.Add(label2);
             this.Controls.Add(this.rtbRename);
             this.Controls.Add(this.btnRename);
@@ -125,6 +149,10 @@
             this.ResumeLayout(false);
             this.PerformLayout();
         }
+
+        private System.Windows.Forms.Button btnRefresh;
+
+        private System.Windows.Forms.Button btnSwitchHg;
 
         private System.Windows.Forms.Button btnRename;
         private System.Windows.Forms.RichTextBox rtbRename;

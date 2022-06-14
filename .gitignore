@@ -1,3 +1,6 @@
 */obj/Debug
 /GitMoveOrRenameDetector/bin/Debug/*.pdb
 /.idea/
+*.suo
+*.vshost.exe
+*.vshost.exe.manifest
