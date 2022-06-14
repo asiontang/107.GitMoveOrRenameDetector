@@ -301,33 +301,79 @@ namespace GitMoveOrRenameDetector
             //将检测到重命名文件显示到界面
             var renameList = new List<String>();
 
-            renameList.Add("把工作目录状态暂存起来(把工作目录弄干净,方便后续临时提交一个纯纯的重命名的版本");
-            //file:///D:/Program%20Files/Git/mingw64/share/doc/git-doc/git-stash.html
-            renameList.AddRange(GetCmdResult(GitExeFilePath, $"stash --include-untracked")); //将未版本控制的也要暂存起来,防止后续干扰
+            renameList.Add("【１】先把重命名后的新文件备份起来");
+            renameList.Add("------------------------------------------------------------");
+            int i = 0;
+            foreach (var kv in _DelAndNewDic)
+            {
+                //var oldFileStr = kv.Key;
+                var newFileStr = kv.Value.getNewFileStr();
+                renameList.Add($"{++i}.{newFileStr}.bak");
+                File.Move(newFileStr, newFileStr + ".bak");
+            }
+
             renameList.Add("");
 
-            int i = 0;
+            //必须先还原,否则后续的暂存时会将旧文件被删除的状态给暂存起来,导致后续还原暂存时出现状态冲突
+            renameList.Add("【２】再把被重命名的旧文件还原回来");
+            renameList.Add("------------------------------------------------------------");
+            i = 0;
+            foreach (var kv in _DelAndNewDic)
+            {
+                var oldFileStr = kv.Key;
+                renameList.Add($"{++i}.{oldFileStr}");
+                renameList.AddRange(GetCmdResult(GitExeFilePath, $"checkout -- \"{oldFileStr}\""));
+            }
+
+            renameList.Add("");
+
+            renameList.Add("【３】把工作目录状态暂存起来(把工作目录弄干净,方便后续临时提交一个纯纯的重命名的版本");
+            renameList.Add("------------------------------------------------------------");
+            //file:///D:/Program%20Files/Git/mingw64/share/doc/git-doc/git-stash.html
+            renameList.AddRange(GetCmdResult(GitExeFilePath, $"stash"));
+            renameList.Add("");
+
+            i = 0;
             foreach (var kv in _DelAndNewDic)
             {
                 var oldFileStr = kv.Key;
                 var newFileStr = kv.Value.getNewFileStr();
 
-                renameList.Add(++i + "." + oldFileStr);
-                renameList.Add("└→ " + newFileStr);
+                renameList.Add($"{++i}.{oldFileStr}");
+                renameList.Add($"└→ {newFileStr}");
                 renameList.Add("└→ 使用Git MV指令重命名为新文件");
                 renameList.AddRange(GetCmdResult(GitExeFilePath, $"mv \"{oldFileStr}\" \"{newFileStr}\""));
                 renameList.Add("");
             }
 
-            renameList.Add("提交一个纯纯的重命名的版本");
+            renameList.Add("【４】提交一个纯纯的重命名的版本");
+            renameList.Add("------------------------------------------------------------");
             renameList.AddRange(GetCmdResult(GitExeFilePath, $"commit -m \"+移动了:或重命名了 {i} 个文件\""));
             renameList.Add("");
 
-            renameList.Add("将暂存起来的状态还原到工作目录");
+            renameList.Add("【５】将暂存起来的状态还原到工作目录");
+            renameList.Add("------------------------------------------------------------");
             renameList.AddRange(GetCmdResult(GitExeFilePath, $"stash pop"));
             renameList.Add("");
 
+            renameList.Add("【６】最后把重命名后的新文件备份还原回来");
+            renameList.Add("------------------------------------------------------------");
+            i = 0;
+            foreach (var kv in _DelAndNewDic)
+            {
+                var newFileStr = kv.Value.getNewFileStr();
+                renameList.Add($"{++i}.{newFileStr}");
+
+                File.Delete(newFileStr);
+                File.Move(newFileStr + ".bak", newFileStr);
+            }
+
+            renameList.Add("");
+
             rtbRename.Lines = renameList.ToArray();
+
+            //打开提交界面
+            btnOpenCommit_Click(null, null);
         }
 
         private void btnRefresh_Click(object sender, EventArgs e)
@@ -335,6 +381,8 @@ namespace GitMoveOrRenameDetector
             InitData();
             rtbRename.Clear();
         }
+
+        #region Git常用功能按钮区
 
         private void StartExe(string fileName, string arguments)
         {
@@ -381,5 +429,7 @@ namespace GitMoveOrRenameDetector
         {
             StartExe(GitExeFilePath + @"\..\..\..\TortoiseGit\bin\TortoiseGitProc.exe", "/command:push");
         }
+
+        #endregion
     }
 }
